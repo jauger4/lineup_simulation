@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# pybaseball cache lives in ~/.pybaseball/cache (outside the repo), but ignore a local one if present
+.pybaseball/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Note: the *_2026.csv data products are committed on purpose (in-progress-season snapshots,
+# slow to re-pull from Savant). Remove the next line's comment to stop tracking them instead.
+# *_2026.csv
