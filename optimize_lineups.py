@@ -30,6 +30,7 @@ from itertools import combinations
 import numpy as np
 import pandas as pd
 from scipy import stats
+from scipy.optimize import linear_sum_assignment
 
 from lineup_sim import LineupSimulator, Batter, league_average_batter
 
@@ -55,25 +56,26 @@ def load_data():
 def build_team_lineup(team_rows, batters, avg):
     """Return (batter_ids, Batter list, n_padded) for one team in real-life batting order.
 
-    Only hitters with outcome data are eligible. Slots 1-9 are filled greedily: for each slot
-    take the still-unused eligible hitter who started there most often. Any slot left unfilled
-    (teams with fewer than nine qualified hitters) gets a league-average placeholder.
+    Only hitters with outcome data are eligible; the nine regulars are the most-started of those.
+    Those nine are matched to the nine slots by a global optimal assignment (Hungarian algorithm)
+    that maximizes total starts-in-assigned-slot -- so each hitter lands in the slot they actually
+    batted in most, rather than being stranded by a greedy slot-by-slot pass. Teams with fewer than
+    nine qualified hitters leave the unfilled slot(s) as a league-average placeholder.
     """
-    eligible = team_rows[team_rows["batter"].isin(batters)].copy()
-    order_ids = []
-    used = set()
-    for slot in SLOTS:
-        pool = eligible[~eligible["batter"].isin(used)]
-        if pool.empty:
-            break
-        pick = int(pool.loc[pool[slot].idxmax(), "batter"])
-        order_ids.append(pick)
-        used.add(pick)
+    eligible = (
+        team_rows[team_rows["batter"].isin(batters)]
+        .sort_values("games_started", ascending=False)
+        .head(9)
+        .reset_index(drop=True)
+    )
+    # players x 9 matrix of games started in each slot; maximize the assigned-slot total.
+    games_by_slot = eligible[SLOTS].to_numpy(dtype=float)
+    player_idx, slot_idx = linear_sum_assignment(-games_by_slot)
 
-    n_padded = 0
-    while len(order_ids) < 9:
-        order_ids.append(None)          # placeholder -> league-average batter
-        n_padded += 1
+    order_ids = [None] * 9
+    for p, s in zip(player_idx, slot_idx):
+        order_ids[s] = int(eligible.loc[p, "batter"])
+    n_padded = order_ids.count(None)
 
     lineup = [batters[b] if b is not None else avg for b in order_ids]
     return order_ids, lineup, n_padded

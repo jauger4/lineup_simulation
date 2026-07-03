@@ -38,6 +38,10 @@ Season under study: **2026** (in progress; data pulled through ~2026-06-30).
    heatmap, boxplots, eta²/ANOVA/Spearman/silhouette) on the **optimized** lineups and lays them next to the
    real ones, to see if the run-maximizing orders have a prototype and whether power moves up. Uses the raw
    approach stats, *not* cluster labels (clustering found no usable archetypes).
+9. **`dashboard.py`** — Streamlit front-end over `optimal_lineups_2026.csv`. Alphabetical team picker → real
+   vs. optimized lineup side by side (with per-hitter OBP/HR%/barrel% and a "moved from slot X" indicator),
+   plus the runs/game gain **gated on `p_value < 0.05`** (no gain claimed when not significant). Pure CSV read,
+   no simulation at runtime. Run: `streamlit run dashboard.py`.
 
 ## Key decisions & conventions
 - **Clustering/analysis population = PA ≥ 150** (≈285 players). Drops low-sample pitchers/bench noise.
@@ -73,7 +77,8 @@ treat "power" as a position on a spectrum (e.g. PC1 or a barrel/whiff index), no
 - Optional: validate/tune `DEFAULT_ADVANCEMENT` against real team run totals; add pitcher/handedness effects.
 
 ## Environment / running
-- Python 3.11. Installed: `pybaseball` 2.2.7, pandas, numpy, scikit-learn 1.8.0, matplotlib, seaborn, scipy.
+- Python 3.11. Installed: `pybaseball` 2.2.7, pandas, numpy, scikit-learn 1.8.0, matplotlib, seaborn, scipy,
+  `streamlit` 1.55 (dashboard). Pinned in `requirements.txt` (`pip install -r requirements.txt`).
 - `notebook`/`jupyterlab`/`nbconvert` are **not** installed — run `.ipynb` files via **VS Code's** Jupyter
   support (Run All). To validate a notebook headless, exec its code cells with the matplotlib `Agg` backend.
 - `pybaseball` caching is enabled (cache at `~/.pybaseball/cache`); the season pull is only fetched once.

@@ -1,0 +1,11 @@
+# Lineup-optimization project dependencies (Python 3.11).
+# Dashboard runtime needs only streamlit + pandas; the rest drive the data pull,
+# clustering, simulation, and analysis pipeline (see CLAUDE.md).
+streamlit==1.55.0
+pandas==2.2.2
+numpy==1.26.4
+scipy==1.17.0
+scikit-learn==1.8.0
+matplotlib==3.10.8
+seaborn==0.13.2
+pybaseball==2.2.7
