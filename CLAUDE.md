@@ -15,6 +15,29 @@ Season under study: **2026** (in progress; data pulled through ~2026-06-30).
 2. **`explore_hitters.ipynb`** — light EDA (distributions, outliers, correlations) on the PA ≥ 150 set.
 3. **`cluster_hitters.ipynb`** → `hitter_clusters_2026.csv`. K-means / DBSCAN / GMM clustering on the
    standardized stats. Output adds `kmeans_label, gmm_label, dbscan_label, archetype` (power/contact).
+4. **`pull_lineup_data.py`** → `hitter_lineup_2026.csv`. Recovers each hitter's modal batting-order slot
+   and **team** from the cached Statcast pull (Statcast has no lineup column; it is reconstructed from
+   `at_bat_number` order per game). Columns: `batter, name, team, primary_slot, games_started, slot_share,
+   g_slot1..g_slot9`. Used to assemble each team's real 9-man lineup (the optimization baseline).
+5. **`pull_outcome_data.py`** → `hitter_outcomes_2026.csv`. Per-PA **outcome probabilities** the simulator
+   needs (the approach stats can't drive a sim). Source is season counting stats from **Baseball Reference**
+   (`batting_stats_bref`), *not* Statcast — FanGraphs `batting_stats` is currently HTTP-403, and SB/CS/sac/
+   GDP are hard to reconstruct from pitch data. Ten `p_*` columns partition the PA (sum to 1): `p_1b, p_2b,
+   p_3b, p_hr, p_bb` (BB+HBP+interference, taken as the residual), `p_k, p_dp, p_out, p_sf, p_sh`; plus
+   `sb_rate, cs_rate` (per time-reached-first) and `avg, obp` for validation. Filtered to PA ≥ 150.
+6. **`lineup_sim.py`** (+ `test_lineup_sim.py`) — the `LineupSimulator` class: a base-out state machine that
+   plays innings/games one PA at a time from a batter's outcome vector. Runner advancement on hits is
+   governed by `DEFAULT_ADVANCEMENT` (the tuning knobs), calibrated so a league-average lineup scores
+   ~4.4 R/G. Stolen bases/sacrifices come from the per-batter rates. `python test_lineup_sim.py` runs the
+   transition unit tests without needing pytest.
+7. **`optimize_lineups.py`** → `optimal_lineups_2026.csv`. Per team, greedy pairwise-swap hill-climb (with
+   random restarts, common-random-numbers seed) over the 9! order space to find the max-runs lineup, then a
+   big independent re-sim of baseline vs. best with a Welch t-test. The team's real order is always a
+   candidate, so `best_rpg ≥ baseline_rpg`.
+8. **`analyze_optimal_lineups.ipynb`** — reruns the `explore_lineups.ipynb` slot-profile toolkit (mean-by-slot,
+   heatmap, boxplots, eta²/ANOVA/Spearman/silhouette) on the **optimized** lineups and lays them next to the
+   real ones, to see if the run-maximizing orders have a prototype and whether power moves up. Uses the raw
+   approach stats, *not* cluster labels (clustering found no usable archetypes).
 
 ## Key decisions & conventions
 - **Clustering/analysis population = PA ≥ 150** (≈285 players). Drops low-sample pitchers/bench noise.
@@ -33,9 +56,21 @@ together) and a largely independent **discipline axis** (walk% vs chase%, r≈-0
 split is power-leaning vs contact-leaning, driven by the power axis. **Implication:** for the simulation,
 treat "power" as a position on a spectrum (e.g. PC1 or a barrel/whiff index), not a hard class.
 
+## Simulation model & caveats
+- **Each PA is drawn independently** from the batter's own outcome distribution — no count, pitcher, park,
+  or lineup-protection effects. Batting order matters here *only through sequencing* (who bats with runners
+  on), which is exactly the effect being tested.
+- **Raw individual rates** (no regression to league mean), per the project decision — rare events (3B, SB)
+  are therefore noisy for lower-PA hitters.
+- **Order effects are small** (~0.1–0.3 R/G between a good and a poor order). Deltas from `optimize_lineups.py`
+  are directional, not precise; the hill-climb is heuristic (local optimum, not a proven global best).
+- Two teams (e.g. STL, SEA) have < 9 qualified hitters; their 9th slot is padded with a league-average
+  batter (`n_padded` column flags this).
+
 ## Next steps (not yet built)
-- Team-level analysis: flag which 2026 lineups already bat power-up vs. traditional.
-- Monte Carlo lineup simulation comparing real vs. power-up orderings (runs/game, significance test).
+- Team-level analysis: flag which 2026 lineups already bat power-up vs. traditional (partly answered by
+  `analyze_optimal_lineups.ipynb`, which contrasts real vs. optimized power-by-slot).
+- Optional: validate/tune `DEFAULT_ADVANCEMENT` against real team run totals; add pitcher/handedness effects.
 
 ## Environment / running
 - Python 3.11. Installed: `pybaseball` 2.2.7, pandas, numpy, scikit-learn 1.8.0, matplotlib, seaborn, scipy.

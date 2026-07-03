@@ -12,7 +12,7 @@ re-download): within a game, a team's plate appearances in at_bat_number order c
 through the lineup, so the first 9 distinct batters are lineup spots 1-9 for that game.
 The 2026 universal DH means slot 9 is a real hitter (pitchers do not bat).
 
-Output columns: batter, name, primary_slot, games_started, slot_share, g_slot1..g_slot9.
+Output columns: batter, name, team, primary_slot, games_started, slot_share, g_slot1..g_slot9.
 
 Run:  python pull_lineup_data.py
 """
@@ -59,7 +59,7 @@ def assign_slots(df):
     first_app["slot"] = first_app.groupby(["game_pk", "batting_team"]).cumcount() + 1
 
     # Keep only the starting nine.
-    return first_app[first_app["slot"] <= 9][["batter", "game_pk", "slot"]]
+    return first_app[first_app["slot"] <= 9][["batter", "game_pk", "slot", "batting_team"]]
 
 
 def summarize_slots(starters):
@@ -83,7 +83,17 @@ def summarize_slots(starters):
         .rename("primary_slot")
     )
 
-    out = wide.join(primary)
+    # Modal team = the team the batter started the most games for (handles mid-season trades).
+    team = (
+        starters.groupby(["batter", "batting_team"]).size().rename("g").reset_index()
+    )
+    team = (
+        team.loc[team.groupby("batter")["g"].idxmax()]
+        .set_index("batter")["batting_team"]
+        .rename("team")
+    )
+
+    out = wide.join(primary).join(team)
     out["games_started"] = wide.sum(axis=1)
     out["slot_share"] = (
         out.apply(lambda r: r[f"g_slot{int(r['primary_slot'])}"], axis=1) / out["games_started"]
@@ -108,7 +118,7 @@ def main():
     summary = add_names(summary)
 
     cols = (
-        ["batter", "name", "primary_slot", "games_started", "slot_share"]
+        ["batter", "name", "team", "primary_slot", "games_started", "slot_share"]
         + [f"g_slot{s}" for s in SLOTS]
     )
     summary = summary[cols].sort_values("games_started", ascending=False).reset_index(drop=True)
