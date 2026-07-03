@@ -39,9 +39,11 @@ Season under study: **2026** (in progress; data pulled through ~2026-06-30).
    real ones, to see if the run-maximizing orders have a prototype and whether power moves up. Uses the raw
    approach stats, *not* cluster labels (clustering found no usable archetypes).
 9. **`dashboard.py`** — Streamlit front-end over `optimal_lineups_2026.csv`. Alphabetical team picker → real
-   vs. optimized lineup side by side (with per-hitter OBP/HR%/barrel% and a "moved from slot X" indicator),
-   plus the runs/game gain **gated on `p_value < 0.05`** (no gain claimed when not significant). Pure CSV read,
-   no simulation at runtime. Run: `streamlit run dashboard.py`.
+   vs. optimized lineup side by side as custom HTML **lineup cards** (per-hitter OBP/HR%/barrel%/BB%/K% chips
+   heat-shaded by percentile vs. the qualified population — Savant-style red=hot/blue=cold, **K% inverted** —
+   plus a ▲/▼ "moved" badge), the runs/game gain **gated on `p_value < 0.05`** (no gain claimed when not
+   significant). Dark "Baseball Savant" theme in **`.streamlit/config.toml`** (red `#d22d49` accent). Pure CSV
+   read, no simulation at runtime. Run: `streamlit run dashboard.py`.
 
 ## Key decisions & conventions
 - **Clustering/analysis population = PA ≥ 150** (≈285 players). Drops low-sample pitchers/bench noise.

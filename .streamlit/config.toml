@@ -1,0 +1,9 @@
+# Dark "Baseball Savant" theme for dashboard.py so Streamlit's own chrome
+# (selectbox, metrics, callouts) matches the custom lineup cards.
+[theme]
+base = "dark"
+primaryColor = "#d22d49"             # Savant red accent
+backgroundColor = "#0e1220"          # near-black navy page background
+secondaryBackgroundColor = "#1a2133" # panel / widget base
+textColor = "#e8eaf0"
+font = "sans serif"
